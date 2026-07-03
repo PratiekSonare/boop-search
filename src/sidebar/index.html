@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="en" class="h-full">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PookieExplorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              vscode: {
+                bg: '#1e1e1e',
+                sidebar: '#252526',
+                input: '#3c3c3c',
+                border: '#3c3c3c',
+                'border-focus': '#007acc',
+                text: '#cccccc',
+                'text-muted': '#808080',
+                accent: '#007acc',
+                'accent-hover': '#0098ff',
+                'btn-primary': '#0e639c',
+                'btn-primary-hover': '#1177bb',
+                selection: '#264f78',
+              },
+            },
+            fontFamily: {
+              sans: ['var(--vscode-font-family)', 'system-ui', 'sans-serif'],
+              mono: ['var(--vscode-editor-font-family)', 'monospace'],
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      :root {
+        --vscode-font-size: 13px;
+      }
+      body {
+        font-size: var(--vscode-font-size);
+        background: #1e1e1e;
+        color: #cccccc;
+      }
+      input:focus,
+      select:focus {
+        border-color: #007acc !important;
+        outline: none;
+      }
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #1e1e1e;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #424242;
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+      }
+
+      /* Dynamic classes for JS */
+      .toggle-btn.active {
+        background: #0e639c;
+        color: #fff;
+      }
+      .status-bar.status-ok {
+        background: rgba(14, 99, 156, 0.15);
+        color: #3dc9b0;
+        border-color: rgba(14, 99, 156, 0.4);
+      }
+      .status-bar.status-warn {
+        background: rgba(200, 150, 0, 0.15);
+        color: #cca700;
+        border-color: rgba(200, 150, 0, 0.4);
+      }
+      .status-bar.status-error {
+        background: rgba(200, 50, 50, 0.15);
+        color: #f44747;
+        border-color: rgba(200, 50, 50, 0.4);
+      }
+      .filter-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        background: rgba(14, 99, 156, 0.2);
+        color: #3dc9b0;
+        border: 1px solid rgba(14, 99, 156, 0.4);
+        border-radius: 3px;
+        font-size: 10px;
+        font-family: var(--vscode-editor-font-family);
+        cursor: default;
+      }
+      .chip-remove {
+        cursor: pointer;
+        opacity: 0.6;
+        font-weight: bold;
+        margin-left: 2px;
+        transition: opacity 0.15s;
+      }
+      .chip-remove:hover {
+        opacity: 1;
+      }
+      .autocomplete-item {
+        padding: 6px 8px;
+        cursor: pointer;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: background 0.1s;
+      }
+      .autocomplete-item:hover {
+        background: #094771;
+      }
+      .autocomplete-item.selected {
+        background: #04395e;
+      }
+      .result-item {
+        padding: 8px 10px;
+        border-bottom: 1px solid #3c3c3c;
+        cursor: pointer;
+        font-size: 12px;
+        transition: background 0.1s;
+      }
+      .result-item:last-child {
+        border-bottom: none;
+      }
+      .result-item:hover {
+        background: #094771;
+      }
+      .result-item .label {
+        font-weight: 600;
+        color: #cccccc;
+      }
+      .result-item .desc {
+        color: #808080;
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .settings-icon {
+        transition: transform 0.15s;
+      }
+      .settings-icon.open {
+        transform: rotate(90deg);
+      }
+      .progress-bar {
+        transition: width 0.2s ease;
+      }
+      #resultsSection:not(.hidden) {
+        display: flex;
+        flex-direction: column;
+      }
+      .loading-spinner {
+        display: inline-flex;
+        gap: 3px;
+        align-items: center;
+        justify-content: center;
+      }
+      .loading-spinner .dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: currentColor;
+        animation: spinner-bounce 1.2s infinite ease-in-out;
+      }
+      .loading-spinner .dot:nth-child(1) {
+        animation-delay: -0.32s;
+      }
+      .loading-spinner .dot:nth-child(2) {
+        animation-delay: -0.16s;
+      }
+      .loading-spinner .dot:nth-child(3) {
+        animation-delay: 0s;
+      }
+      @keyframes spinner-bounce {
+        0%,
+        80%,
+        100% {
+          transform: scale(0.4);
+          opacity: 0.4;
+        }
+        40% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+    </style>
+  </head>
+
+  <body class="bg-vscode-bg text-vscode-text font-sans p-3 h-full overflow-hidden">
+    <div class="flex flex-col h-full w-full">
+      <!-- Empty state (shown on startup, hidden when results appear) -->
+      <div
+        id="emptyState"
+        class="flex-1 flex flex-col items-center justify-center text-center px-6"
+      >
+        <svg
+          class="w-10 h-10 text-gray-600 mb-3"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <p class="text-sm text-gray-400">Search your codebase</p>
+        <p class="text-xs text-gray-500 mt-10 leading-relaxed px-2">
+          To get started:<br />
+          1. Open the
+          <span class="text-vscode-accent cursor-pointer" id="emptyStateSettingsLink"
+            >settings</span
+          >
+          and check your root workspace path<br />
+          2. If needed, set the root folder and click <strong>Rescan</strong> to build the index<br />
+          3. Type a query above and press Enter to search
+        </p>
+        <div id="emptyStateCacheStatus" class="hidden mt-3 text-[11px] text-gray-600"></div>
+      </div>
+
+      <!-- Results (top, takes remaining space) -->
+      <div id="resultsSection" class="hidden flex-1 min-h-0 flex-col mb-3">
+        <div class="flex items-center justify-between mb-2">
+          <div class="text-md font-semibold text-vscode-text-muted">RESULTS</div>
+          <button
+            id="copyAllPathsBtn"
+            class="hidden text-[10px] text-gray-500 hover:text-vscode-text transition-colors px-1.5 py-0.5 rounded hover:bg-vscode-input"
+            title="Copy all paths"
+          >
+            &#x2398;
+          </button>
+        </div>
+        <div
+          id="resultsList"
+          class="text-md min-h-0 overflow-y-auto border border-vscode-border rounded bg-vscode-sidebar"
+        ></div>
+      </div>
+
+      <!-- Status & Loading (inline, above chat) -->
+      <div class="flex-1 m-auto">
+        <div id="statusBar" class="hidden px-2 py-2 rounded text-xs mb-3 border">
+          <div id="loadingBar" class="hidden loading-spinner">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Section (bottom) -->
+      <div class="flex flex-col w-full rounded-lg border border-vscode-border bg-vscode-bg">
+        <!-- Filter chips -->
+        <div id="filterChips" class="hidden flex flex-wrap gap-1 px-3 pt-3"></div>
+
+        <!-- Cache indicator -->
+        <!-- <div id="cacheIndicator" class="hidden px-3 pt-1">
+          <span class="text-[10px] text-gray-600">&#x2713; Index cache found</span>
+        </div> -->
+
+        <!-- Input query box + Settings gear -->
+        <div class="flex items-center gap-2 p-1.5">
+          <div class="relative flex-1">
+            <input
+              type="text"
+              id="queryInput"
+              placeholder="Type @ for filters, e.g., @lang: py auth middleware"
+              class="w-full p-1.5 bg-vscode-bg text-vscode-text rounded text-md transition-colors duration-150 placeholder:text-gray-500"
+            />
+            <div
+              id="autocompleteDropdown"
+              class="hidden absolute bottom-full left-0 right-0 bg-vscode-bg border border-vscode-border rounded max-h-[200px] overflow-y-auto z-50 mb-1 shadow-lg"
+            ></div>
+          </div>
+
+          <div class="flex flex-row gap-2">
+            <button
+              id="settingsToggle"
+              class="p-1.5 rounded hover:bg-vscode-input transition-colors"
+              title="Settings"
+            >
+              <svg
+                class="w-4 h-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                <g id="SVGRepo_iconCarrier">
+                  <circle cx="12" cy="12" r="3" stroke="#fff" stroke-width="1.5"></circle>
+                  <path
+                    d="M13.7654 2.15224C13.3978 2 12.9319 2 12 2C11.0681 2 10.6022 2 10.2346 2.15224C9.74457 2.35523 9.35522 2.74458 9.15223 3.23463C9.05957 3.45834 9.0233 3.7185 9.00911 4.09799C8.98826 4.65568 8.70226 5.17189 8.21894 5.45093C7.73564 5.72996 7.14559 5.71954 6.65219 5.45876C6.31645 5.2813 6.07301 5.18262 5.83294 5.15102C5.30704 5.08178 4.77518 5.22429 4.35436 5.5472C4.03874 5.78938 3.80577 6.1929 3.33983 6.99993C2.87389 7.80697 2.64092 8.21048 2.58899 8.60491C2.51976 9.1308 2.66227 9.66266 2.98518 10.0835C3.13256 10.2756 3.3397 10.437 3.66119 10.639C4.1338 10.936 4.43789 11.4419 4.43786 12C4.43783 12.5581 4.13375 13.0639 3.66118 13.3608C3.33965 13.5629 3.13248 13.7244 2.98508 13.9165C2.66217 14.3373 2.51966 14.8691 2.5889 15.395C2.64082 15.7894 2.87379 16.193 3.33973 17C3.80568 17.807 4.03865 18.2106 4.35426 18.4527C4.77508 18.7756 5.30694 18.9181 5.83284 18.8489C6.07289 18.8173 6.31632 18.7186 6.65204 18.5412C7.14547 18.2804 7.73556 18.27 8.2189 18.549C8.70224 18.8281 8.98826 19.3443 9.00911 19.9021C9.02331 20.2815 9.05957 20.5417 9.15223 20.7654C9.35522 21.2554 9.74457 21.6448 10.2346 21.8478C10.6022 22 11.0681 22 12 22C12.9319 22 13.3978 22 13.7654 21.8478C14.2554 21.6448 14.6448 21.2554 14.8477 20.7654C14.9404 20.5417 14.9767 20.2815 14.9909 19.902C15.0117 19.3443 15.2977 18.8281 15.781 18.549C16.2643 18.2699 16.8544 18.2804 17.3479 18.5412C17.6836 18.7186 17.927 18.8172 18.167 18.8488C18.6929 18.9181 19.2248 18.7756 19.6456 18.4527C19.9612 18.2105 20.1942 17.807 20.6601 16.9999C21.1261 16.1929 21.3591 15.7894 21.411 15.395C21.4802 14.8691 21.3377 14.3372 21.0148 13.9164C20.8674 13.7243 20.6602 13.5628 20.3387 13.3608C19.8662 13.0639 19.5621 12.558 19.5621 11.9999C19.5621 11.4418 19.8662 10.9361 20.3387 10.6392C20.6603 10.4371 20.8675 10.2757 21.0149 10.0835C21.3378 9.66273 21.4803 9.13087 21.4111 8.60497C21.3592 8.21055 21.1262 7.80703 20.6602 7C20.1943 6.19297 19.9613 5.78945 19.6457 5.54727C19.2249 5.22436 18.693 5.08185 18.1671 5.15109C17.9271 5.18269 17.6837 5.28136 17.3479 5.4588C16.8545 5.71959 16.2644 5.73002 15.7811 5.45096C15.2977 5.17191 15.0117 4.65566 14.9909 4.09794C14.9767 3.71848 14.9404 3.45833 14.8477 3.23463C14.6448 2.74458 14.2554 2.35523 13.7654 2.15224Z"
+                    stroke="#fff"
+                    stroke-width="1.5"
+                  ></path>
+                </g>
+              </svg>
+            </button>
+
+            <!-- Search button -->
+            <button
+              id="searchBtn"
+              class="w-full py-1.5 px-3 bg-vscode-btn-primary text-white rounded hover:bg-vscode-btn-primary-hover active:bg-blue-800 transition-colors duration-100"
+            >
+              <span id="searchIcon" class="inline-flex">
+                <svg
+                  class="w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                  <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                  <g id="SVGRepo_iconCarrier">
+                    <path
+                      d="M12 4.5L17 9.5M12 4.5L7 9.5M12 4.5C12 4.5 12 12.8333 12 14.5C12 16.1667 11 19.5 7 19.5"
+                      stroke="#fff"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    ></path>
+                  </g>
+                </svg>
+              </span>
+              <span id="searchSpinner" class="hidden inline-flex loading-spinner">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Workspace path (bottom) -->
+      <div
+        id="workspacePath"
+        class="text-[11px] text-gray-500 px-2 py-1.5 border border-vscode-border rounded break-all mt-3"
+      >
+        <strong class="text-vscode-accent">Workspace:</strong>
+        <span id="workspacePathValue">&mdash;</span>
+      </div>
+    </div>
+
+    <!-- Settings Dialog (modal overlay) -->
+    <div
+      id="settingsPanel"
+      class="hidden fixed inset-0 z-[200] flex items-center justify-center bg-black/50"
+    >
+      <div
+        class="bg-vscode-sidebar border border-vscode-border rounded-lg shadow-xl w-[90%] max-w-md max-h-[80vh] overflow-y-auto"
+      >
+        <!-- Dialog header -->
+        <div class="flex items-center justify-between px-4 py-3 border-b border-vscode-border">
+          <span class="text-sm font-medium">Settings</span>
+          <button
+            id="settingsCloseBtn"
+            class="p-1 rounded hover:bg-vscode-input transition-colors text-vscode-text-muted hover:text-vscode-text"
+            title="Close"
+          >
+            <svg
+              class="w-4 h-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="p-4 space-y-5">
+          <!-- Search Mode -->
+          <div>
+            <div
+              class="text-[11px] font-semibold text-vscode-text-muted mb-2 uppercase tracking-wider"
+            >
+              Search Mode
+            </div>
+            <div id="searchModeToggle" class="flex gap-1 bg-vscode-input rounded p-0.5">
+              <button
+                class="toggle-btn active flex-1 py-1.5 px-2 text-[11px] rounded transition-colors"
+                data-mode="embeddings"
+              >
+                Embeddings
+              </button>
+              <button
+                class="toggle-btn flex-1 py-1.5 px-2 bg-transparent text-vscode-text-muted text-[11px] rounded transition-colors hover:bg-vscode-bg"
+                data-mode="llm"
+              >
+                LLM (AI)
+              </button>
+            </div>
+          </div>
+
+          <!-- Index -->
+          <div>
+            <div
+              class="text-[11px] font-semibold text-vscode-text-muted mb-2 uppercase tracking-wider"
+            >
+              Index
+            </div>
+            <div class="mb-2">
+              <label class="block text-[11px] mb-1 text-vscode-text-muted">Root Folder Path</label>
+              <input
+                type="text"
+                id="rootPathInput"
+                placeholder="leave empty for workspace default"
+                class="w-full py-1.5 px-2 bg-vscode-input text-vscode-text border border-vscode-border rounded text-xs font-mono outline-none"
+              />
+            </div>
+            <div class="mb-2">
+              <label class="block text-[11px] mb-1 text-vscode-text-muted">Max Results</label>
+              <input
+                type="number"
+                id="maxResultsInput"
+                min="1"
+                max="50"
+                value="5"
+                class="w-full py-1.5 px-2 bg-vscode-input text-vscode-text border border-vscode-border rounded text-xs font-mono outline-none"
+              />
+            </div>
+            <div class="flex gap-1.5">
+              <button
+                id="setRootPathBtn"
+                class="flex-1 py-1 px-2 bg-vscode-btn-primary text-white rounded text-[11px] font-medium hover:bg-vscode-btn-primary-hover transition-colors"
+              >
+                Set Root
+              </button>
+              <button
+                id="rescanBtn"
+                class="flex-1 py-1 px-2 bg-vscode-input text-vscode-text border border-vscode-border rounded text-[11px] hover:border-vscode-border-focus transition-colors"
+              >
+                Rescan
+              </button>
+            </div>
+            <div id="scanProgress" class="hidden mt-2">
+              <div class="w-full h-1.5 bg-vscode-input rounded overflow-hidden">
+                <div id="progressBar" class="h-full w-0 bg-vscode-accent rounded"></div>
+              </div>
+              <div class="text-[10px] text-gray-500 mt-1 font-mono" id="progressText">
+                0/0 files
+              </div>
+            </div>
+          </div>
+
+          <!-- Symbol Extraction -->
+          <div>
+            <div
+              class="text-[11px] font-semibold text-vscode-text-muted mb-2 uppercase tracking-wider"
+            >
+              Symbol Extraction
+            </div>
+            <div class="flex items-center gap-2 text-xs">
+              <input
+                type="checkbox"
+                id="enableSymbolExtraction"
+                checked
+                class="cursor-pointer accent-blue-500"
+              />
+              <label for="enableSymbolExtraction" class="flex-1 cursor-pointer"
+                >Enable LSP symbol extraction</label
+              >
+            </div>
+            <p class="text-[11px] text-gray-500 leading-relaxed mt-1">
+              Extract function, class, interface, and method names from files using the language
+              server. Disabling speeds up indexing but reduces search accuracy for code symbols.
+            </p>
+          </div>
+
+          <!-- Provider Configuration -->
+          <div id="providerConfigSection" class="hidden">
+            <div
+              class="text-[11px] font-semibold text-vscode-text-muted mb-2 uppercase tracking-wider"
+            >
+              Provider Configuration
+            </div>
+            <div class="mb-3">
+              <label class="block text-[11px] mb-1 text-vscode-text-muted">Provider</label>
+              <select
+                id="providerSelect"
+                class="w-full py-1.5 px-2 bg-vscode-input text-vscode-text border border-vscode-border rounded text-xs font-mono outline-none cursor-pointer"
+              >
+                <option value="gemini">Gemini</option>
+                <option value="openai">OpenAI</option>
+                <option value="openrouter">OpenRouter</option>
+              </select>
+            </div>
+            <div class="flex gap-2 mb-3">
+              <div class="flex-1">
+                <label class="block text-[11px] mb-1 text-vscode-text-muted">API Key</label>
+                <input
+                  type="password"
+                  id="apiKeyInput"
+                  placeholder="Enter API key"
+                  class="w-full py-1.5 px-2 bg-vscode-input text-vscode-text border border-vscode-border rounded text-xs font-mono outline-none"
+                />
+              </div>
+              <div class="flex-1" id="geminiModelGroup">
+                <label class="block text-[11px] mb-1 text-vscode-text-muted">Model</label>
+                <select
+                  id="geminiModelSelect"
+                  class="w-full py-1.5 px-2 bg-vscode-input text-vscode-text border border-vscode-border rounded text-xs font-mono outline-none cursor-pointer"
+                >
+                  <option value="gemini-3.5-flash">gemini-3.5-flash</option>
+                  <option value="gemini-3.1-pro">gemini-3.1-pro</option>
+                  <option value="gemini-3-flash">gemini-3-flash</option>
+                  <option value="gemini-3-pro">gemini-3-pro</option>
+                  <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+                  <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                </select>
+              </div>
+              <div class="flex-1 hidden" id="openaiModelGroup">
+                <label class="block text-[11px] mb-1 text-vscode-text-muted">Model</label>
+                <select
+                  id="openaiModelSelect"
+                  class="w-full py-1.5 px-2 bg-vscode-input text-vscode-text border border-vscode-border rounded text-xs font-mono outline-none cursor-pointer"
+                >
+                  <option value="gpt-5.5">gpt-5.5</option>
+                  <option value="gpt-5.4">gpt-5.4</option>
+                  <option value="gpt-5.4-mini">gpt-5.4-mini</option>
+                  <option value="gpt-5.4-nano">gpt-5.4-nano</option>
+                  <option value="o3">o3</option>
+                  <option value="o4-mini">o4-mini</option>
+                  <option value="gpt-4.1">gpt-4.1</option>
+                  <option value="gpt-4.1-mini">gpt-4.1-mini</option>
+                </select>
+              </div>
+              <div class="flex-1 hidden" id="openrouterModelGroup">
+                <label class="block text-[11px] mb-1 text-vscode-text-muted">Model</label>
+                <input
+                  type="text"
+                  id="modelInput"
+                  placeholder="e.g., anthropic/claude-3-haiku"
+                  class="w-full py-1.5 px-2 bg-vscode-input text-vscode-text border border-vscode-border rounded text-xs font-mono outline-none"
+                />
+              </div>
+            </div>
+            <button
+              id="saveProviderBtn"
+              class="w-full py-1.5 px-3 bg-vscode-btn-primary text-white rounded text-xs font-medium hover:bg-vscode-btn-primary-hover transition-colors"
+            >
+              Save Configuration
+            </button>
+          </div>
+
+          <!-- Settings status messages -->
+          <div
+            id="settingsStatus"
+            class="hidden px-3 py-2 rounded text-xs border border-vscode-border"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <script src="${scriptUri}"></script>
+  </body>
+</html>

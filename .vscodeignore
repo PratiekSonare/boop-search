@@ -1,0 +1,23 @@
+src/**
+test/**
+# Keep node_modules for external native packages (@xenova/transformers, onnxruntime-node, sharp)
+# Only exclude dev-only packages
+node_modules/@typescript-eslint/**
+node_modules/eslint/**
+node_modules/eslint-config-prettier/**
+node_modules/prettier/**
+node_modules/vitest/**
+node_modules/@vitest/**
+node_modules/esbuild/**
+node_modules/typescript/**
+node_modules/@vscode/test-electron/**
+node_modules/@types/**
+.eslintrc.json
+.prettierrc
+tsconfig.json
+vitest.config.ts
+esbuild.config.js
+*.md
+!README.md
+*.map
+.gitignore
