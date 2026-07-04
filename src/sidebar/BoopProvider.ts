@@ -318,17 +318,24 @@ export class BoopProvider implements vscode.WebviewViewProvider {
       const total = filePaths.length;
       logger.info(`Rebuilding index for ${total} files`);
 
+      const CONCURRENCY = 8;
       let processed = 0;
-      for (const filePath of filePaths) {
-        try {
-          const metadata = await this.fileIndexer.buildMetadata(filePath);
-          this.index.add(metadata);
-        } catch (err) {
-          logger.warn(`Could not index ${filePath}`);
-        }
-        processed++;
 
-        if (processed % 5 === 0 || processed === total) {
+      for (let i = 0; i < filePaths.length; i += CONCURRENCY) {
+        const batch = filePaths.slice(i, i + CONCURRENCY);
+        const results = await Promise.allSettled(
+          batch.map((fp) => this.fileIndexer.buildMetadata(fp)),
+        );
+        for (const result of results) {
+          if (result.status === 'fulfilled') {
+            this.index.add(result.value);
+          } else {
+            logger.warn(`Could not index a file`);
+          }
+          processed++;
+        }
+
+        if (processed % CONCURRENCY === 0 || processed === total) {
           webview.postMessage({
             type: 'scanProgress',
             current: processed,
@@ -348,14 +355,18 @@ export class BoopProvider implements vscode.WebviewViewProvider {
       });
 
       this.folderIndex.buildFromFiles(this.index.getAll());
-      for (const folder of this.folderIndex.getAll()) {
-        try {
-          const folderEmbedding = await this.embeddings.embedText(
+      const folders = this.folderIndex.getAll();
+      const folderResults = await Promise.allSettled(
+        folders.map(async (folder) => {
+          const embedding = await this.embeddings.embedText(
             this.folderIndex.folderText(folder),
           );
-          folder.embedding = folderEmbedding;
-        } catch (err) {
-          logger.warn(`Could not embed folder ${folder.folderPath}`);
+          folder.embedding = embedding;
+        }),
+      );
+      for (const result of folderResults) {
+        if (result.status === 'rejected') {
+          logger.warn(`Could not embed a folder`);
         }
       }
       await this.folderIndex.save(this.folderCachePath);

@@ -19,11 +19,9 @@
   const resultsList = document.getElementById('resultsList');
   const settingsToggle = document.getElementById('settingsToggle');
   const settingsPanel = document.getElementById('settingsPanel');
-  const settingsIcon = document.getElementById('settingsChevron');
   const settingsCloseBtn = document.getElementById('settingsCloseBtn');
   const providerSelect = document.getElementById('providerSelect');
   const apiKeyInput = document.getElementById('apiKeyInput');
-  const saveProviderBtn = document.getElementById('saveProviderBtn');
   const rootPathDisplay = document.getElementById('rootPathDisplay');
   const browseFolderBtn = document.getElementById('browseFolderBtn');
   let selectedFolderPath = '';
@@ -41,7 +39,6 @@
   const emptyStateSettingsLink = document.getElementById('emptyStateSettingsLink');
   const copyAllPathsBtn = document.getElementById('copyAllPathsBtn');
   const providerConfigSection = document.getElementById('providerConfigSection');
-  const cacheIndicator = document.getElementById('cacheIndicator');
   const settingsStatus = document.getElementById('settingsStatus');
 
   const geminiModelGroup = document.getElementById('geminiModelGroup');
@@ -285,31 +282,6 @@
     });
   }
 
-  saveProviderBtn.addEventListener('click', () => {
-    const apiKey = apiKeyInput.value.trim();
-    let model;
-
-    if (currentProvider === 'gemini') {
-      model = geminiModelSelect.value;
-    } else if (currentProvider === 'openai') {
-      model = openaiModelSelect.value;
-    } else {
-      model = modelInput.value.trim() || DEFAULT_MODELS.openrouter;
-    }
-
-    if (!apiKey) {
-      showStatus('API key is required.', 'warn');
-      return;
-    }
-
-    vscode.postMessage({
-      type: 'configureProvider',
-      provider: currentProvider,
-      apiKey,
-      model,
-    });
-  });
-
   saveConfigBtn.addEventListener('click', () => {
     saveConfigBtn.disabled = true;
     saveConfigBtn.textContent = 'Saving & Scanning...';
@@ -319,6 +291,27 @@
 
     const maxResults = parseInt(maxResultsInput.value, 10);
     const symbolExtraction = enableSymbolExtraction.checked;
+
+    if (currentSearchMode === 'llm') {
+      const apiKey = apiKeyInput.value.trim();
+      let model;
+      if (currentProvider === 'gemini') {
+        model = geminiModelSelect.value;
+      } else if (currentProvider === 'openai') {
+        model = openaiModelSelect.value;
+      } else {
+        model = modelInput.value.trim() || DEFAULT_MODELS.openrouter;
+      }
+
+      if (apiKey) {
+        vscode.postMessage({
+          type: 'configureProvider',
+          provider: currentProvider,
+          apiKey,
+          model,
+        });
+      }
+    }
 
     vscode.postMessage({ type: 'saveConfig', rootPath: selectedFolderPath, maxResults, symbolExtraction });
   });
@@ -376,9 +369,7 @@
         scanProgress.classList.add('hidden');
         progressBar.style.width = '0%';
         showSettingsStatus(`Index rebuilt \u2014 ${msg.indexSize} files indexed. Workspace: ${workspacePathValue.textContent}`, 'ok');
-        emptyStateCacheStatus.textContent = `${msg.indexSize} files indexed. Start typing to search.`;
-        emptyStateCacheStatus.classList.remove('hidden');
-        cacheIndicator.classList.remove('hidden');
+        vscode.postMessage({ type: 'getInitialState' });
         break;
       case 'rootPathSet':
         showSettingsStatus(msg.message, 'ok');
@@ -497,9 +488,11 @@
       return;
     }
 
-    const current = providerStatus[currentProvider];
-    if (current && !current.configured) {
-      showStatus(`${currentProvider} API key not set. Configure below.`, 'warn');
+    if (currentSearchMode === 'llm') {
+      const current = providerStatus[currentProvider];
+      if (current && !current.configured) {
+        showStatus(`${currentProvider} API key not set. Configure below.`, 'warn');
+      }
     }
   }
 
@@ -525,9 +518,6 @@
   function showLoading(show) {
     searchBtn.disabled = show;
     document.getElementById('searchIcon').classList.toggle('hidden', show);
-    const spinner = document.getElementById('searchSpinner');
-    spinner.classList.toggle('hidden', !show);
-    spinner.classList.toggle('inline-flex', show);
     if (show) emptyState.classList.add('hidden');
   }
 

@@ -11,6 +11,7 @@ Powered by local embeddings (`Xenova/all-MiniLM-L6-v2`) running entirely offline
 
 - **Natural language file search** — "auth middleware", "sidebar component", "database config"
 - **Semantic embeddings** — finds files by meaning, not just keywords
+- **No code reading** — only file names, paths, language, and optional header tags are embedded. Your source code is never read, sent, or stored.
 - **LLM-powered search** — optional re-ranking via Gemini, OpenAI, or OpenRouter
 - **Rich filters** — `@lang: py`, `@ext: .ts`, `@inFolder: src/`, `@symbol: getUser`, `@modified: today`
 - **Auto-generated file headers** — add `@purpose`, `@category`, `@related` tags to files

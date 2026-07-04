@@ -1,8 +1,8 @@
 {
   "name": "boop-search",
-  "displayName": "boop",
+  "displayName": "boop-search",
   "description": "Open files in your codebase using natural language queries powered by local embeddings",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "PratiekSonare",
   "icon": "resources/boop-icon.png",
   "repository": {
@@ -42,7 +42,8 @@
         {
           "type": "webview",
           "id": "boop.sidebar",
-          "name": "File Explorer"
+          "icon": "extension-icon.png",
+          "name": ""
         }
       ]
     },

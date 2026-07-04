@@ -96,6 +96,7 @@ export function getFilterValueSuggestions(
 
     case 'lang': {
       const languages = [...new Set(files.map(f => f.language))];
+      const coveredLangs = new Set(Object.values(LANG_ALIASES).flat());
       const aliasEntries = Object.entries(LANG_ALIASES)
         .filter(([alias, targets]) =>
           targets.some(t => languages.includes(t)) &&
@@ -105,7 +106,7 @@ export function getFilterValueSuggestions(
       return [
         ...aliasEntries,
         ...languages
-          .filter(l => l.toLowerCase().includes(partial.toLowerCase()))
+          .filter(l => !coveredLangs.has(l) && l.toLowerCase().includes(partial.toLowerCase()))
           .sort(),
       ];
     }

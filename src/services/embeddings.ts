@@ -122,6 +122,8 @@ export class EmbeddingsEngine {
       file.purpose,
       file.category,
       file.language,
+      file.folderPath,
+      ...file.related,
       ...file.symbols,
     ];
     return parts.filter(Boolean).join(' ');
