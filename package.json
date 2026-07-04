@@ -1,10 +1,10 @@
 {
-  "name": "pookie-explorer",
+  "name": "boop",
   "displayName": "Boop",
   "description": "Open files in your codebase using natural language queries powered by local embeddings",
   "version": "0.1.0",
-  "publisher": "pratiek",
-  "icon": "resources/boop-icon.svg",
+  "publisher": "PratiekSonare",
+  "icon": "resources/boop-icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/PratiekSonare/boop-search"
@@ -31,47 +31,59 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "pookieExplorer",
+          "id": "boop",
           "title": "Boop",
-          "icon": "resources/boop-icon.svg"
+          "icon": "extension-icon.png"
         }
       ]
     },
     "views": {
-      "pookieExplorer": [
+      "boop": [
         {
           "type": "webview",
-          "id": "pookieExplorer.sidebar",
+          "id": "boop.sidebar",
           "name": "File Explorer"
         }
       ]
     },
     "commands": [
       {
-        "command": "pookie-explorer.openByDescription",
+        "command": "boop.openByDescription",
         "title": "Open Files by Description",
-        "category": "Boop"
+        "category": "boop"
       },
       {
-        "command": "pookie-explorer.addHeader",
+        "command": "boop.addHeader",
         "title": "Add File Purpose Header",
-        "category": "Boop"
+        "category": "boop"
       },
       {
-        "command": "pookie-explorer.rebuildIndex",
+        "command": "boop.rebuildIndex",
         "title": "Rebuild Metadata Index",
-        "category": "Boop"
+        "category": "boop"
       },
       {
-        "command": "pookie-explorer.configureProvider",
+        "command": "boop.configureProvider",
         "title": "Configure LLM Provider",
-        "category": "Boop"
+        "category": "boop"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "boop.openByDescription",
+        "key": "ctrl+shift+alt+F",
+        "when": "editorFocus"
+      },
+      {
+        "command": "boop.rebuildIndex",
+        "key": "ctrl+shift+alt+R",
+        "when": "editorFocus"
       }
     ],
     "configuration": {
       "title": "Boop",
       "properties": {
-        "pookie-explorer.searchMethod": {
+        "boop.searchMethod": {
           "type": "string",
           "enum": [
             "embeddings",
@@ -80,7 +92,7 @@
           "default": "embeddings",
           "description": "Search method: 'embeddings' (fast, offline) or 'llm' (intelligent, requires API key)"
         },
-        "pookie-explorer.llmProvider": {
+        "boop.llmProvider": {
           "type": "string",
           "enum": [
             "gemini",
@@ -90,49 +102,49 @@
           "default": "gemini",
           "description": "LLM provider for search and auto-summarization"
         },
-        "pookie-explorer.geminiApiKey": {
+        "boop.geminiApiKey": {
           "type": "string",
           "default": "",
           "markdownDescription": "**Required if using Gemini provider.** Google Gemini API key (get from https://aistudio.google.com/app/apikey)."
         },
-        "pookie-explorer.geminiModel": {
+        "boop.geminiModel": {
           "type": "string",
           "default": "gemini-3.5-flash",
           "description": "Gemini model to use (e.g., gemini-3.5-flash, gemini-3.1-pro, gemini-2.5-pro)"
         },
-        "pookie-explorer.openaiApiKey": {
+        "boop.openaiApiKey": {
           "type": "string",
           "default": "",
           "markdownDescription": "**Required if using OpenAI provider.** OpenAI API key (get from https://platform.openai.com/api-keys)."
         },
-        "pookie-explorer.openaiModel": {
+        "boop.openaiModel": {
           "type": "string",
           "default": "gpt-4o-mini",
           "description": "OpenAI model to use (e.g., gpt-4o, gpt-4o-mini, gpt-3.5-turbo)"
         },
-        "pookie-explorer.openRouterApiKey": {
+        "boop.openRouterApiKey": {
           "type": "string",
           "default": "",
           "markdownDescription": "**Required if using OpenRouter provider.** OpenRouter API key (get from https://openrouter.ai/keys)."
         },
-        "pookie-explorer.openRouterModel": {
+        "boop.openRouterModel": {
           "type": "string",
           "default": "anthropic/claude-3-haiku",
           "description": "OpenRouter model ID (e.g., anthropic/claude-3-haiku, openai/gpt-4o-mini)"
         },
-        "pookie-explorer.maxResultsShown": {
+        "boop.maxResultsShown": {
           "type": "number",
           "default": 5,
           "minimum": 1,
           "maximum": 20,
           "description": "Maximum number of files to show in the quick-pick results"
         },
-        "pookie-explorer.autoSummarizeOnStartup": {
+        "boop.autoSummarizeOnStartup": {
           "type": "boolean",
           "default": false,
           "description": "Auto-generate @purpose summaries for files without headers on first startup (requires Gemini API key)"
         },
-        "pookie-explorer.includePatterns": {
+        "boop.includePatterns": {
           "type": "array",
           "items": {
             "type": "string"
@@ -142,7 +154,7 @@
           ],
           "description": "Glob patterns for files to include in the index"
         },
-        "pookie-explorer.excludePatterns": {
+        "boop.excludePatterns": {
           "type": "array",
           "items": {
             "type": "string"
@@ -157,17 +169,17 @@
           ],
           "description": "Glob patterns for files to exclude from the index"
         },
-        "pookie-explorer.enableFileWatcher": {
+        "boop.enableFileWatcher": {
           "type": "boolean",
           "default": true,
           "description": "Automatically update the index when files are created, deleted, or modified"
         },
-        "pookie-explorer.enableSymbolExtraction": {
+        "boop.enableSymbolExtraction": {
           "type": "boolean",
           "default": true,
           "description": "Extract function, class, interface, and method names from files using LSP. Faster indexing when disabled."
         },
-        "pookie-explorer.rootFolderPath": {
+        "boop.rootFolderPath": {
           "type": "string",
           "default": "",
           "description": "Root folder path to scan from. Leave empty to scan the entire workspace."
@@ -176,21 +188,23 @@
     }
   },
   "scripts": {
+    "build:css": "tailwindcss -i src/sidebar/styles.css -o dist/sidebar.css",
     "compile": "node esbuild.config.js",
+    "build": "npm run build:css && npm run compile",
     "watch": "node esbuild.config.js --watch",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
     "lint": "eslint src --ext ts",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "package": "vsce package",
-    "vscode:prepublish": "npm run compile"
+    "vscode:prepublish": "npm run build"
   },
   "dependencies": {
     "@google/generative-ai": "^0.3.0",
-    "@xenova/transformers": "^2.6.0",
-    "multi-llm-ts": "^5.1.0-beta4"
+    "@xenova/transformers": "^2.6.0"
   },
   "devDependencies": {
+    "@tailwindcss/cli": "^4.3.2",
     "@types/node": "^20.19.43",
     "@types/vscode": "^1.85.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
@@ -200,6 +214,7 @@
     "eslint": "^8.0.0",
     "eslint-config-prettier": "^9.0.0",
     "prettier": "^3.0.0",
+    "tailwindcss": "^4.3.2",
     "typescript": "^5.0.0",
     "vitest": "^1.0.0"
   }

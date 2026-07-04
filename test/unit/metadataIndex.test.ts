@@ -75,7 +75,7 @@ describe('MetadataIndex', () => {
 
   it('save and load round-trips all fields', async () => {
     const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'llm-index-test-'));
-    const cachePath = path.join(tmpDir, '.codebase-metadata.json');
+    const cachePath = path.join(tmpDir, '.boop-metadata.json');
 
     const file = makeFile({ embedding: [0.1, 0.2, 0.3] });
     index.add(file);

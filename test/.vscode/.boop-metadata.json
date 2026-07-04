@@ -3,11 +3,11 @@
   "buildTime": "2026-07-01T06:26:19.531Z",
   "files": [
     {
-      "path": "/home/pratiek/Downloads/pookie-explorer/test/.vscode/.codebase-metadata.json",
-      "fileName": ".codebase-metadata.json",
+      "path": "/home/pratiek/Downloads/pookie-explorer/test/.vscode/.boop-metadata.json",
+      "fileName": ".boop-metadata.json",
       "folderPath": "/home/pratiek/Downloads/pookie-explorer/test/.vscode",
       "language": "json",
-      "purpose": ".codebase-metadata.json in .vscode",
+      "purpose": ".boop-metadata.json in .vscode",
       "purposeSource": "inferred",
       "category": "tests",
       "related": [],

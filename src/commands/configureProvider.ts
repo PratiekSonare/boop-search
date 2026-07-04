@@ -5,7 +5,7 @@ import { logger } from '../services/logger';
 
 export function registerConfigureProvider(context: vscode.ExtensionContext): vscode.Disposable {
   return vscode.commands.registerCommand(
-    'pookie-explorer.configureProvider',
+    'boop.configureProvider',
     async () => {
       const providerItems = (Object.keys(PROVIDER_LABELS) as LLMProvider[]).map((p) => ({
         label: PROVIDER_LABELS[p],
@@ -69,7 +69,7 @@ export function registerConfigureProvider(context: vscode.ExtensionContext): vsc
         model = customModel.trim();
       }
 
-      const cfg = vscode.workspace.getConfiguration('pookie-explorer');
+      const cfg = vscode.workspace.getConfiguration('boop');
 
       const providerKeyMap: Record<LLMProvider, { key: string; model: string }> = {
         gemini: { key: 'geminiApiKey', model: '' },

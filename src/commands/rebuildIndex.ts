@@ -19,7 +19,7 @@ export function registerRebuildIndex(
   folderCachePath: string,
   embeddings: EmbeddingsEngine,
 ): vscode.Disposable {
-  return vscode.commands.registerCommand('pookie-explorer.rebuildIndex', async () => {
+  return vscode.commands.registerCommand('boop.rebuildIndex', async () => {
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,

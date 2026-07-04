@@ -24,10 +24,11 @@
   const providerSelect = document.getElementById('providerSelect');
   const apiKeyInput = document.getElementById('apiKeyInput');
   const saveProviderBtn = document.getElementById('saveProviderBtn');
-  const rootPathInput = document.getElementById('rootPathInput');
+  const rootPathDisplay = document.getElementById('rootPathDisplay');
+  const browseFolderBtn = document.getElementById('browseFolderBtn');
+  let selectedFolderPath = '';
   const maxResultsInput = document.getElementById('maxResultsInput');
-  const setRootPathBtn = document.getElementById('setRootPathBtn');
-  const rescanBtn = document.getElementById('rescanBtn');
+  const saveConfigBtn = document.getElementById('saveConfigBtn');
   const scanProgress = document.getElementById('scanProgress');
   const progressBar = document.getElementById('progressBar');
   const progressText = document.getElementById('progressText');
@@ -309,33 +310,21 @@
     });
   });
 
-  setRootPathBtn.addEventListener('click', () => {
-    const rootPath = rootPathInput.value.trim();
-    vscode.postMessage({ type: 'setRootPath', rootPath });
-  });
-
-  maxResultsInput.addEventListener('change', () => {
-    const val = parseInt(maxResultsInput.value, 10);
-    if (val >= 1 && val <= 50) {
-      vscode.postMessage({ type: 'updateConfig', key: 'maxResultsShown', value: val });
-    }
-  });
-
-  rescanBtn.addEventListener('click', () => {
-    rescanBtn.disabled = true;
-    rescanBtn.textContent = 'Scanning...';
+  saveConfigBtn.addEventListener('click', () => {
+    saveConfigBtn.disabled = true;
+    saveConfigBtn.textContent = 'Saving & Scanning...';
     scanProgress.classList.remove('hidden');
     progressBar.style.width = '0%';
     progressText.textContent = 'Starting...';
-    vscode.postMessage({ type: 'rescan' });
+
+    const maxResults = parseInt(maxResultsInput.value, 10);
+    const symbolExtraction = enableSymbolExtraction.checked;
+
+    vscode.postMessage({ type: 'saveConfig', rootPath: selectedFolderPath, maxResults, symbolExtraction });
   });
 
-  enableSymbolExtraction.addEventListener('change', () => {
-    vscode.postMessage({
-      type: 'updateConfig',
-      key: 'enableSymbolExtraction',
-      value: enableSymbolExtraction.checked,
-    });
+  browseFolderBtn.addEventListener('click', () => {
+    vscode.postMessage({ type: 'browseFolder' });
   });
 
   vscode.postMessage({ type: 'getInitialState' });
@@ -357,8 +346,8 @@
       case 'error':
         showLoading(false);
         scanProgress.classList.add('hidden');
-        rescanBtn.disabled = false;
-        rescanBtn.textContent = 'Rescan';
+        saveConfigBtn.disabled = false;
+        saveConfigBtn.textContent = 'Save Config & Rescan';
         resultsSection.classList.add('hidden');
         emptyState.classList.remove('hidden');
         showStatus(msg.message, 'error');
@@ -382,17 +371,31 @@
         }
         break;
       case 'rescanComplete':
-        rescanBtn.disabled = false;
-        rescanBtn.textContent = 'Rescan';
+        saveConfigBtn.disabled = false;
+        saveConfigBtn.textContent = 'Save Config & Rescan';
         scanProgress.classList.add('hidden');
         progressBar.style.width = '0%';
-        showSettingsStatus(`Index rebuilt \u2014 ${msg.indexSize} files indexed.`, 'ok');
+        showSettingsStatus(`Index rebuilt \u2014 ${msg.indexSize} files indexed. Workspace: ${workspacePathValue.textContent}`, 'ok');
         emptyStateCacheStatus.textContent = `${msg.indexSize} files indexed. Start typing to search.`;
         emptyStateCacheStatus.classList.remove('hidden');
         cacheIndicator.classList.remove('hidden');
         break;
       case 'rootPathSet':
         showSettingsStatus(msg.message, 'ok');
+        if (msg.workspacePath) {
+          workspacePathValue.textContent = msg.workspacePath;
+        }
+        if (msg.rootPath !== undefined) {
+          selectedFolderPath = msg.rootPath;
+          rootPathDisplay.textContent = msg.rootPath || 'None selected';
+        }
+        break;
+      case 'folderSelected':
+        selectedFolderPath = msg.folderPath || '';
+        rootPathDisplay.textContent = msg.folderPath || 'None selected';
+        rootPathDisplay.classList.toggle('text-vscode-text', !msg.folderPath);
+        rootPathDisplay.classList.toggle('text-gray-400', !msg.folderPath);
+        saveConfigBtn.disabled = !msg.folderPath;
         break;
       case 'filterSuggestions':
         hideAutocomplete();
@@ -409,6 +412,21 @@
 
     if (state.workspacePath) {
       workspacePathValue.textContent = state.workspacePath;
+    }
+
+    if (state.rootFolderPath) {
+      selectedFolderPath = state.rootFolderPath;
+      rootPathDisplay.textContent = state.rootFolderPath;
+      rootPathDisplay.classList.add('text-vscode-text');
+      rootPathDisplay.classList.remove('text-gray-400');
+      saveConfigBtn.disabled = false;
+    }
+
+    if (!state.hasWorkspace) {
+      queryInput.disabled = true;
+      queryInput.placeholder = 'Open a workspace folder to search';
+      searchBtn.disabled = true;
+      searchBtn.title = 'Open a workspace folder to search';
     }
 
     if (state.hasCache) {
@@ -451,7 +469,11 @@
     }
 
     if (state.rootFolderPath) {
-      rootPathInput.value = state.rootFolderPath;
+      selectedFolderPath = state.rootFolderPath;
+      rootPathDisplay.textContent = state.rootFolderPath;
+      rootPathDisplay.classList.add('text-vscode-text');
+      rootPathDisplay.classList.remove('text-gray-400');
+      saveConfigBtn.disabled = false;
     }
 
     if (state.maxResultsShown) {
@@ -471,7 +493,7 @@
 
   function updateStatusForProvider(providerStatus, indexSize) {
     if (indexSize === 0) {
-      showStatus('Index is empty. Click "Rescan" below to build the index.', 'warn');
+      showStatus('Codebase not scanned. Click "Rescan" below to build the index.', 'warn');
       return;
     }
 
@@ -503,7 +525,9 @@
   function showLoading(show) {
     searchBtn.disabled = show;
     document.getElementById('searchIcon').classList.toggle('hidden', show);
-    document.getElementById('searchSpinner').classList.toggle('hidden', !show);
+    const spinner = document.getElementById('searchSpinner');
+    spinner.classList.toggle('hidden', !show);
+    spinner.classList.toggle('inline-flex', show);
     if (show) emptyState.classList.add('hidden');
   }
 

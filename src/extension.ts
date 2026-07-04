@@ -15,10 +15,10 @@ import { registerOpenByDescription } from './commands/openFilesByDescription';
 import { registerAddHeader } from './commands/addFileHeader';
 import { registerRebuildIndex } from './commands/rebuildIndex';
 import { registerConfigureProvider } from './commands/configureProvider';
-import { PookieExplorerProvider } from './sidebar/PookieExplorerProvider';
+import { BoopProvider } from './sidebar/BoopProvider';
 
 export function readConfig(): ExtensionConfig {
-  const cfg = vscode.workspace.getConfiguration('pookie-explorer');
+  const cfg = vscode.workspace.getConfiguration('boop');
   return {
     searchMethod: cfg.get('searchMethod', 'embeddings'),
     llmProvider: cfg.get('llmProvider', 'gemini'),
@@ -186,14 +186,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   logger.info('Boop activating');
 
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-  if (!workspaceFolder) {
-    logger.warn('No workspace folder — extension inactive');
-    return;
-  }
-
-  const workspacePath = workspaceFolder.uri.fsPath;
-  const cachePath = path.join(workspacePath, '.vscode', '.codebase-metadata.json');
-  const folderCachePath = path.join(workspacePath, '.vscode', '.pookie-folders.json');
+  const workspacePath = workspaceFolder?.uri.fsPath || '';
 
   const config = readConfig();
   const index = new MetadataIndex();
@@ -204,62 +197,56 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const fileIndexer = new FileIndexer(embeddings, headerParser, symbolExtractor, config.enableSymbolExtraction);
   const folderIndex = new FolderIndex();
 
-  await index.load(cachePath);
-  await folderIndex.load(folderCachePath);
-  logger.info(`Loaded ${index.size} files, ${folderIndex.size()} folders from cache`);
+  if (workspacePath) {
+    const cachePath = path.join(workspacePath, '.vscode', '.boop-metadata.json');
+    const folderCachePath = path.join(workspacePath, '.vscode', '.boop-folders.json');
 
-  // No cache file in this workspace — ask user to scan
-  try {
-    await fs.access(cachePath);
-  } catch {
-    const scan = await vscode.window.showInformationMessage(
-      'No index cache found in this workspace. Scan files now?',
-      'Scan',
-      'Later',
-    );
-    if (scan === 'Scan') {
-      await vscode.commands.executeCommand('pookie-explorer.rebuildIndex');
+    await index.load(cachePath);
+    await folderIndex.load(folderCachePath);
+    logger.info(`Loaded ${index.size} files, ${folderIndex.size()} folders from cache`);
+
+    await deltaScan(index, fileIndexer, scanner, config, cachePath);
+
+    let watcherDisposable: vscode.Disposable | undefined;
+    if (config.enableFileWatcher) {
+      const fileWatcher = new FileWatcher(index, fileIndexer, config.includePatterns, cachePath);
+      watcherDisposable = fileWatcher.watch(workspaceFolder!);
+      context.subscriptions.push(watcherDisposable);
     }
-  }
 
-  await deltaScan(index, fileIndexer, scanner, config, cachePath);
-
-  let watcherDisposable: vscode.Disposable | undefined;
-  if (config.enableFileWatcher) {
-    const fileWatcher = new FileWatcher(index, fileIndexer, config.includePatterns, cachePath);
-    watcherDisposable = fileWatcher.watch(workspaceFolder);
-    context.subscriptions.push(watcherDisposable);
-  }
-
-  const stalenessTimer = startPeriodicStalenessCheck(
-    index,
-    fileIndexer,
-    scanner,
-    config,
-    cachePath,
-  );
-  context.subscriptions.push({ dispose: () => clearInterval(stalenessTimer) });
-
-  context.subscriptions.push(
-    registerOpenByDescription(context, index, embeddings, config, workspacePath),
-    registerAddHeader(context),
-    registerRebuildIndex(
-      context,
+    const stalenessTimer = startPeriodicStalenessCheck(
       index,
       fileIndexer,
       scanner,
-      folderIndex,
       config,
-      workspacePath,
       cachePath,
-      folderCachePath,
-      embeddings,
-    ),
+    );
+    context.subscriptions.push({ dispose: () => clearInterval(stalenessTimer) });
+
+    context.subscriptions.push(
+      registerOpenByDescription(context, index, embeddings, config, workspacePath),
+      registerRebuildIndex(
+        context,
+        index,
+        fileIndexer,
+        scanner,
+        folderIndex,
+        config,
+        workspacePath,
+        cachePath,
+        folderCachePath,
+        embeddings,
+      ),
+    );
+  }
+
+  context.subscriptions.push(
+    registerAddHeader(context),
     registerConfigureProvider(context),
     logger,
   );
 
-  const sidebarProvider = new PookieExplorerProvider(
+  const sidebarProvider = new BoopProvider(
     context.extensionUri,
     index,
     embeddings,
@@ -267,11 +254,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     scanner,
     fileIndexer,
     folderIndex,
-    cachePath,
-    folderCachePath,
+    workspacePath ? path.join(workspacePath, '.vscode', '.boop-metadata.json') : '',
+    workspacePath ? path.join(workspacePath, '.vscode', '.boop-folders.json') : '',
   );
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(PookieExplorerProvider.viewType, sidebarProvider),
+    vscode.window.registerWebviewViewProvider(BoopProvider.viewType, sidebarProvider),
   );
 
   logger.info('Boop activated');

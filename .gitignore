@@ -1,5 +1,5 @@
 node_modules/
 dist/
 *.vsix
-.vscode/.codebase-metadata.json
+.vscode/.boop-metadata.json
 *.js.map

@@ -3,36 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PookieExplorer</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            colors: {
-              vscode: {
-                bg: '#1e1e1e',
-                sidebar: '#252526',
-                input: '#3c3c3c',
-                border: '#3c3c3c',
-                'border-focus': '#007acc',
-                text: '#cccccc',
-                'text-muted': '#808080',
-                accent: '#007acc',
-                'accent-hover': '#0098ff',
-                'btn-primary': '#0e639c',
-                'btn-primary-hover': '#1177bb',
-                selection: '#264f78',
-              },
-            },
-            fontFamily: {
-              sans: ['var(--vscode-font-family)', 'system-ui', 'sans-serif'],
-              mono: ['var(--vscode-editor-font-family)', 'monospace'],
-            },
-          },
-        },
-      };
-    </script>
+    <title>Boop</title>
+    <link rel="stylesheet" href="${styleUri}" />
     <style>
       :root {
         --vscode-font-size: 13px;
@@ -41,6 +13,10 @@
         font-size: var(--vscode-font-size);
         background: #1e1e1e;
         color: #cccccc;
+      }
+      input:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
       }
       input:focus,
       select:focus {
@@ -223,6 +199,12 @@
           2. If needed, set the root folder and click <strong>Rescan</strong> to build the index<br />
           3. Type a query above and press Enter to search
         </p>
+
+        <!-- <div class="mt-6 flex flex-col gap-1.5 text-[11px] text-gray-500">
+          <span><kbd class="text-vscode-accent font-mono text-[10px] border border-gray-600 px-1.5 py-0.5 rounded">Ctrl+Shift+Alt+F</kbd> Open search prompt</span>
+          <span><kbd class="text-vscode-accent font-mono text-[10px] border border-gray-600 px-1.5 py-0.5 rounded">Ctrl+Shift+Alt+R</kbd> Rebuild metadata index</span>
+        </div> -->
+
         <div id="emptyStateCacheStatus" class="hidden mt-3 text-[11px] text-gray-600"></div>
       </div>
 
@@ -237,6 +219,24 @@
           >
             &#x2398;
           </button>
+        </div>
+        <div class="text-[10px] text-gray-600 mb-2 flex items-center gap-1">
+          <svg
+            class="w-3 h-3"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+          </svg>
+          <span
+            >Pro-tip: <kbd class="text-vscode-accent">Ctrl</kbd> + left click to copy relative
+            path</span
+          >
         </div>
         <div
           id="resultsList"
@@ -330,11 +330,6 @@
                   </g>
                 </svg>
               </span>
-              <span id="searchSpinner" class="hidden inline-flex loading-spinner">
-                <span class="dot"></span>
-                <span class="dot"></span>
-                <span class="dot"></span>
-              </span>
             </button>
           </div>
         </div>
@@ -412,13 +407,19 @@
               Index
             </div>
             <div class="mb-2">
-              <label class="block text-[11px] mb-1 text-vscode-text-muted">Root Folder Path</label>
-              <input
-                type="text"
-                id="rootPathInput"
-                placeholder="leave empty for workspace default"
-                class="w-full py-1.5 px-2 bg-vscode-input text-vscode-text border border-vscode-border rounded text-xs font-mono outline-none"
-              />
+              <label class="block text-[11px] mb-1 text-vscode-text-muted">Workspace Root</label>
+              <div
+                id="rootPathDisplay"
+                class="w-full py-1.5 px-2 bg-vscode-input border border-vscode-border rounded text-xs font-mono text-gray-400 truncate mb-1.5"
+              >
+                None selected
+              </div>
+              <button
+                id="browseFolderBtn"
+                class="w-full py-1.5 px-2 bg-vscode-input text-vscode-text border border-vscode-border rounded text-[11px] hover:border-vscode-border-focus transition-colors"
+              >
+                Browse Folder
+              </button>
             </div>
             <div class="mb-2">
               <label class="block text-[11px] mb-1 text-vscode-text-muted">Max Results</label>
@@ -430,28 +431,6 @@
                 value="5"
                 class="w-full py-1.5 px-2 bg-vscode-input text-vscode-text border border-vscode-border rounded text-xs font-mono outline-none"
               />
-            </div>
-            <div class="flex gap-1.5">
-              <button
-                id="setRootPathBtn"
-                class="flex-1 py-1 px-2 bg-vscode-btn-primary text-white rounded text-[11px] font-medium hover:bg-vscode-btn-primary-hover transition-colors"
-              >
-                Set Root
-              </button>
-              <button
-                id="rescanBtn"
-                class="flex-1 py-1 px-2 bg-vscode-input text-vscode-text border border-vscode-border rounded text-[11px] hover:border-vscode-border-focus transition-colors"
-              >
-                Rescan
-              </button>
-            </div>
-            <div id="scanProgress" class="hidden mt-2">
-              <div class="w-full h-1.5 bg-vscode-input rounded overflow-hidden">
-                <div id="progressBar" class="h-full w-0 bg-vscode-accent rounded"></div>
-              </div>
-              <div class="text-[10px] text-gray-500 mt-1 font-mono" id="progressText">
-                0/0 files
-              </div>
             </div>
           </div>
 
@@ -560,6 +539,19 @@
             id="settingsStatus"
             class="hidden px-3 py-2 rounded text-xs border border-vscode-border"
           ></div>
+
+          <button
+            id="saveConfigBtn"
+            class="w-full py-1.5 px-3 bg-vscode-btn-primary text-white rounded text-xs font-medium hover:bg-vscode-btn-primary-hover transition-colors"
+          >
+            Save Config &amp; Rescan
+          </button>
+          <div id="scanProgress" class="hidden mt-2">
+            <div class="w-full h-1.5 bg-vscode-input rounded overflow-hidden">
+              <div id="progressBar" class="h-full w-0 bg-vscode-accent rounded"></div>
+            </div>
+            <div class="text-[10px] text-gray-500 mt-1 font-mono" id="progressText">0/0 files</div>
+          </div>
         </div>
       </div>
     </div>

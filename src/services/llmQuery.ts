@@ -143,7 +143,7 @@ export class LLMQueryEngine {
     };
 
     if (this.provider === 'openrouter') {
-      headers['HTTP-Referer'] = 'https://github.com/pookie-explorer';
+      headers['HTTP-Referer'] = 'https://github.com/PratiekSonare/boop-search';
       headers['X-Title'] = 'Boop';
     }
 

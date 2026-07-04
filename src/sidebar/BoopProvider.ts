@@ -16,8 +16,8 @@ import { ExtensionConfig, LLMProvider } from '../types/config';
 import { readConfig } from '../extension';
 import { logger } from '../services/logger';
 
-export class PookieExplorerProvider implements vscode.WebviewViewProvider {
-  public static readonly viewType = 'pookieExplorer.sidebar';
+export class BoopProvider implements vscode.WebviewViewProvider {
+  public static readonly viewType = 'boop.sidebar';
   private _view?: vscode.WebviewView;
 
   constructor(
@@ -68,8 +68,11 @@ export class PookieExplorerProvider implements vscode.WebviewViewProvider {
         case 'rescan':
           await this._handleRescan(webviewView.webview);
           break;
-        case 'setRootPath':
-          await this._handleSetRootPath(message.rootPath, webviewView.webview);
+        case 'saveConfig':
+          await this._handleSaveConfig(message, webviewView.webview);
+          break;
+        case 'browseFolder':
+          await this._handleBrowseFolder(webviewView.webview);
           break;
         case 'getFilterTypeSuggestions':
           this._handleGetFilterTypeSuggestions(message.partial, webviewView.webview);
@@ -122,6 +125,9 @@ export class PookieExplorerProvider implements vscode.WebviewViewProvider {
 
     const hasCache = await this._checkCacheExists();
 
+    const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+    const effectivePath = this.config.rootFolderPath || workspaceFolder?.uri.fsPath || '';
+
     webview.postMessage({
       type: 'initialState',
       currentProvider: this.config.llmProvider,
@@ -130,7 +136,8 @@ export class PookieExplorerProvider implements vscode.WebviewViewProvider {
       indexSize: this.index.size,
       maxResultsShown: this.config.maxResultsShown,
       rootFolderPath: this.config.rootFolderPath,
-      workspacePath: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '',
+      workspacePath: effectivePath,
+      hasWorkspace: !!workspaceFolder,
       enableSymbolExtraction: this.config.enableSymbolExtraction,
       hasCache,
     });
@@ -256,7 +263,7 @@ export class PookieExplorerProvider implements vscode.WebviewViewProvider {
     webview: vscode.Webview,
   ): Promise<void> {
     try {
-      const cfg = vscode.workspace.getConfiguration('pookie-explorer');
+      const cfg = vscode.workspace.getConfiguration('boop');
 
       const providerKeyMap: Record<LLMProvider, { key: string; model: string }> = {
         gemini: { key: 'geminiApiKey', model: 'geminiModel' },
@@ -366,22 +373,55 @@ export class PookieExplorerProvider implements vscode.WebviewViewProvider {
     }
   }
 
-  private async _handleSetRootPath(rootPath: string, webview: vscode.Webview): Promise<void> {
+  private async _handleSaveConfig(
+    message: { rootPath: string; maxResults: number; symbolExtraction: boolean },
+    webview: vscode.Webview,
+  ): Promise<void> {
     try {
-      const cfg = vscode.workspace.getConfiguration('pookie-explorer');
-      await cfg.update('rootFolderPath', rootPath, vscode.ConfigurationTarget.Global);
+      const cfg = vscode.workspace.getConfiguration('boop');
 
-      const freshConfig = readConfig();
-      Object.assign(this.config, freshConfig);
+      await cfg.update('rootFolderPath', message.rootPath, vscode.ConfigurationTarget.Global);
+      await cfg.update('maxResultsShown', message.maxResults, vscode.ConfigurationTarget.Global);
+      await cfg.update(
+        'enableSymbolExtraction',
+        message.symbolExtraction,
+        vscode.ConfigurationTarget.Global,
+      );
+
+      this.config.rootFolderPath = message.rootPath;
+      this.config.maxResultsShown = message.maxResults;
+      this.config.enableSymbolExtraction = message.symbolExtraction;
+
+      const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+      const effectivePath = message.rootPath || workspaceFolder?.uri.fsPath || '';
 
       webview.postMessage({
         type: 'rootPathSet',
-        rootPath,
-        message: `Root folder set to: ${rootPath || '(workspace default)'}`,
+        rootPath: message.rootPath,
+        workspacePath: effectivePath,
+        message: `Config saved. Rescanning...`,
       });
+
+      await this._handleRescan(webview);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to save root path';
+      const msg = err instanceof Error ? err.message : 'Failed to save config';
       webview.postMessage({ type: 'error', message: msg });
+    }
+  }
+
+  private async _handleBrowseFolder(webview: vscode.Webview): Promise<void> {
+    const result = await vscode.window.showOpenDialog({
+      canSelectFiles: false,
+      canSelectFolders: true,
+      canSelectMany: false,
+      title: 'Select Workspace Root Folder',
+    });
+
+    if (result && result.length > 0) {
+      webview.postMessage({
+        type: 'folderSelected',
+        folderPath: result[0].fsPath,
+      });
     }
   }
 
@@ -424,7 +464,7 @@ export class PookieExplorerProvider implements vscode.WebviewViewProvider {
     webview: vscode.Webview,
   ): Promise<void> {
     try {
-      const cfg = vscode.workspace.getConfiguration('pookie-explorer');
+      const cfg = vscode.workspace.getConfiguration('boop');
       await cfg.update(key, value, vscode.ConfigurationTarget.Global);
 
       const freshConfig = readConfig();
@@ -447,9 +487,15 @@ export class PookieExplorerProvider implements vscode.WebviewViewProvider {
       vscode.Uri.joinPath(this._extensionUri, 'src', 'sidebar', 'webview.js'),
     );
 
+    const styleUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, 'dist', 'sidebar.css'),
+    );
+
     const indexHtmlPath = vscode.Uri.joinPath(this._extensionUri, 'src', 'sidebar', 'index.html');
     const indexHtml = require('fs').readFileSync(indexHtmlPath.fsPath, 'utf8');
 
-    return indexHtml.replace('${scriptUri}', scriptUri.toString());
+    return indexHtml
+      .replace('${scriptUri}', scriptUri.toString())
+      .replace('${styleUri}', styleUri.toString());
   }
 }

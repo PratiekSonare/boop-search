@@ -54,7 +54,7 @@ function getHeaderTemplate(languageId: string, fileName: string): string {
 }
 
 export function registerAddHeader(context: vscode.ExtensionContext): vscode.Disposable {
-  return vscode.commands.registerCommand('pookie-explorer.addHeader', async () => {
+  return vscode.commands.registerCommand('boop.addHeader', async () => {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
       vscode.window.showWarningMessage('No active editor. Open a file first.');

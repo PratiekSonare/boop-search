@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--vscode-font-family), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--vscode-editor-font-family), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --color-vscode-bg: #1e1e1e;
+  --color-vscode-sidebar: #252526;
+  --color-vscode-input: #3c3c3c;
+  --color-vscode-border: #3c3c3c;
+  --color-vscode-border-focus: #007acc;
+  --color-vscode-text: #cccccc;
+  --color-vscode-text-muted: #808080;
+  --color-vscode-accent: #007acc;
+  --color-vscode-accent-hover: #0098ff;
+  --color-vscode-btn-primary: #0e639c;
+  --color-vscode-btn-primary-hover: #1177bb;
+  --color-vscode-selection: #264f78;
+}

@@ -1,4 +1,4 @@
-![Boop](resources/boop-header.svg)
+![Boop](resources/boop-header.png)
 
 **Boop** lets you open files in your codebase using natural language. Just describe what you're looking for — no need to remember exact file names or folder paths.
 
@@ -41,16 +41,16 @@ Powered by local embeddings (`Xenova/all-MiniLM-L6-v2`) running entirely offline
 
 | Setting | Description |
 |---|---|
-| `pookie-explorer.searchMethod` | `embeddings` (default, offline) or `llm` |
-| `pookie-explorer.llmProvider` | `gemini`, `openai`, or `openrouter` |
-| `pookie-explorer.geminiApiKey` | Google Gemini API key |
-| `pookie-explorer.openaiApiKey` | OpenAI API key |
-| `pookie-explorer.openRouterApiKey` | OpenRouter API key |
-| `pookie-explorer.maxResultsShown` | Max files in results (1–20) |
-| `pookie-explorer.rootFolderPath` | Subdirectory to index (empty = whole workspace) |
-| `pookie-explorer.includePatterns` | Glob patterns to include |
-| `pookie-explorer.excludePatterns` | Glob patterns to exclude |
-| `pookie-explorer.autoSummarizeOnStartup` | Auto-generate `@purpose` headers on first run |
+| `boop.searchMethod` | `embeddings` (default, offline) or `llm` |
+| `boop.llmProvider` | `gemini`, `openai`, or `openrouter` |
+| `boop.geminiApiKey` | Google Gemini API key |
+| `boop.openaiApiKey` | OpenAI API key |
+| `boop.openRouterApiKey` | OpenRouter API key |
+| `boop.maxResultsShown` | Max files in results (1–20) |
+| `boop.rootFolderPath` | Subdirectory to index (empty = whole workspace) |
+| `boop.includePatterns` | Glob patterns to include |
+| `boop.excludePatterns` | Glob patterns to exclude |
+| `boop.autoSummarizeOnStartup` | Auto-generate `@purpose` headers on first run |
 
 ## Screenshots
 

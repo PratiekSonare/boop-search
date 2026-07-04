@@ -89,7 +89,7 @@ export function registerOpenByDescription(
   workspacePath: string,
 ): vscode.Disposable {
   return vscode.commands.registerCommand(
-    'pookie-explorer.openByDescription',
+    'boop.openByDescription',
     async () => {
       const rawQuery = await vscode.window.showInputBox({
         prompt: 'Describe the files you want to open',

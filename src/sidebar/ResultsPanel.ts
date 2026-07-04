@@ -66,7 +66,7 @@ export class ResultsPanel {
     }
 
     this._panel = vscode.window.createWebviewPanel(
-      'pookieExplorerResults',
+      'boopResults',
       `Search: ${query}`,
       { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true },
       { enableScripts: true },
