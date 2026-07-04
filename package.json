@@ -1,6 +1,6 @@
 {
-  "name": "boop",
-  "displayName": "Boop",
+  "name": "boop-search",
+  "displayName": "boop",
   "description": "Open files in your codebase using natural language queries powered by local embeddings",
   "version": "0.1.0",
   "publisher": "PratiekSonare",
